@@ -1,0 +1,17 @@
+{
+  "$schema": "https://railway.app/railway-schema.json",
+  "version": 2,
+  "services": {
+    "web": {
+      "builder": "NIXPACKS",
+      "buildCommand": "cd web && npm install && npm run build",
+      "startCommand": "cd web && npm start",
+      "healthcheckPath": "/api/health"
+    },
+    "worker": {
+      "builder": "DOCKERFILE",
+      "dockerfilePath": "worker/Dockerfile",
+      "startCommand": "node dist/index.js"
+    }
+  }
+}
