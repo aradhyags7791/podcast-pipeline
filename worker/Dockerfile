@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     ca-certificates \
     fonts-liberation \
-    libasound2 \
+    libasound2t64 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libcups2 \
@@ -29,12 +29,14 @@ RUN apt-get update && apt-get install -y \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+
+# Build context is repo root — copy only worker files
+COPY worker/package.json ./
+RUN npm install
 RUN npx playwright install chromium
 
-COPY . .
+COPY worker/ .
 RUN npm run build
-RUN mkdir -p tmp
+RUN mkdir -p tmp screenshots
 
 CMD ["node", "dist/index.js"]
