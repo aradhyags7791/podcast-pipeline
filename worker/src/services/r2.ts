@@ -6,8 +6,8 @@ import { Readable } from 'stream'
 import { config } from '../config'
 
 export const r2 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${config.r2AccountId}.r2.cloudflarestorage.com`,
+  region: process.env.R2_REGION ?? 'us-west-004',
+  endpoint: process.env.R2_ENDPOINT ?? 'https://s3.us-west-004.backblazeb2.com',
   credentials: {
     accessKeyId: config.r2AccessKeyId,
     secretAccessKey: config.r2SecretAccessKey,
