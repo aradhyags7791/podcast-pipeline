@@ -9,7 +9,7 @@ export function getConnection(): ConnectionOptions {
     _connection = new IORedis(config.redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
-      tls: config.redisUrl.startsWith('rediss://') ? {} : undefined,
+      tls: config.redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
     })
   }
   return _connection as unknown as ConnectionOptions
