@@ -8,7 +8,7 @@ function getConnection() {
     _connection = new IORedis(process.env.REDIS_URL!, {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
-      tls: process.env.REDIS_URL?.startsWith('rediss://') ? {} : undefined,
+      tls: process.env.REDIS_URL?.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
     })
   }
   return _connection
