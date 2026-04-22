@@ -5,8 +5,6 @@ import { config } from '../config'
 import { downloadFromR2 } from './r2'
 import { VISION_PROMPT } from './prompts'
 
-const client = new Anthropic({ apiKey: config.anthropicApiKey })
-
 export interface VisualContext {
   styleMood: string
   actorAppearance: string
@@ -17,7 +15,9 @@ export interface VisualContext {
 export async function analyzeReferenceImage(
   imageKey: string,
   episodeId: string,
+  anthropicApiKey: string,
 ): Promise<VisualContext> {
+  const client = new Anthropic({ apiKey: anthropicApiKey })
   const tmpDir = path.join(process.cwd(), 'tmp', episodeId)
   await fs.mkdir(tmpDir, { recursive: true })
   const localPath = path.join(tmpDir, 'reference.jpg')

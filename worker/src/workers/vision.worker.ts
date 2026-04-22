@@ -4,6 +4,7 @@ import { episodes, visualContexts } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { setEpisodeStatus, setJobStatus, insertJobRecord } from '../lib/progress'
 import { analyzeReferenceImage } from '../services/vision'
+import { getSetting } from '../lib/settings'
 
 export function startVisionWorker() {
   const worker = createWorker('vision', async (job: import("bullmq").Job) => {
@@ -16,7 +17,10 @@ export function startVisionWorker() {
     const episode = await db.query.episodes.findFirst({ where: eq(episodes.id, episodeId) })
     if (!episode) throw new Error(`Episode ${episodeId} not found`)
 
-    const vc = await analyzeReferenceImage(episode.imageKey, episodeId)
+    const anthropicApiKey = await getSetting('anthropicApiKey', process.env.ANTHROPIC_API_KEY ?? '')
+    if (!anthropicApiKey) throw new Error('Anthropic API key not set — add it in Settings')
+
+    const vc = await analyzeReferenceImage(episode.imageKey, episodeId, anthropicApiKey)
 
     await db.insert(visualContexts).values({
       episodeId,

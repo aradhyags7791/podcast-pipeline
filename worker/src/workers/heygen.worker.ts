@@ -4,6 +4,7 @@ import { episodes, segments, visualContexts } from '../db/schema'
 import { eq, asc } from 'drizzle-orm'
 import { setEpisodeStatus, setJobStatus, insertJobRecord, incrementCompletedSegments } from '../lib/progress'
 import { ensureHeyGenLogin, resetLoginState } from '../services/heygen/login'
+import { getSetting } from '../lib/settings'
 import { generateSegment } from '../services/heygen/avatar-shots'
 import { buildSegmentPrompts } from '../services/prompts'
 
@@ -25,9 +26,13 @@ export function startHeygenWorker() {
       .where(eq(segments.episodeId, episodeId))
       .orderBy(asc(segments.index))
 
+    const heygenEmail    = await getSetting('heygenEmail',    process.env.HEYGEN_EMAIL    ?? '')
+    const heygenPassword = await getSetting('heygenPassword', process.env.HEYGEN_PASSWORD ?? '')
+    if (!heygenEmail || !heygenPassword) throw new Error('HeyGen credentials not set — add them in Settings')
+
     const voiceKey = 'voice-reference.mp3'
 
-    let page = await ensureHeyGenLogin()
+    let page = await ensureHeyGenLogin(heygenEmail, heygenPassword)
 
     for (const seg of segs) {
       console.log(`[heygen] generating segment ${seg.index + 1}/${segs.length}`)
@@ -66,7 +71,7 @@ export function startHeygenWorker() {
         // Re-login on next segment in case session expired
         resetLoginState()
         try {
-          page = await ensureHeyGenLogin()
+          page = await ensureHeyGenLogin(heygenEmail, heygenPassword)
         } catch (loginErr: any) {
           console.error('[heygen] re-login failed:', loginErr.message)
         }
