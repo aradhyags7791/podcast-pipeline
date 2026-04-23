@@ -5,10 +5,17 @@ let _connection: IORedis | null = null
 
 function getConnection() {
   if (!_connection) {
-    _connection = new IORedis(process.env.REDIS_URL!, {
+    const redisUrl = process.env.REDIS_URL!
+    const url = new URL(redisUrl)
+    const isTLS = redisUrl.startsWith('rediss://')
+    _connection = new IORedis({
+      host: url.hostname,
+      port: parseInt(url.port) || (isTLS ? 6380 : 6379),
+      username: url.username || 'default',
+      password: decodeURIComponent(url.password),
+      tls: isTLS ? { rejectUnauthorized: false } : undefined,
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
-      tls: process.env.REDIS_URL?.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
     })
   }
   return _connection

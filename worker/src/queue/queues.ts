@@ -6,10 +6,16 @@ let _connection: IORedis | null = null
 
 export function getConnection(): ConnectionOptions {
   if (!_connection) {
-    _connection = new IORedis(config.redisUrl, {
+    const url = new URL(config.redisUrl)
+    const isTLS = config.redisUrl.startsWith('rediss://')
+    _connection = new IORedis({
+      host: url.hostname,
+      port: parseInt(url.port) || (isTLS ? 6380 : 6379),
+      username: url.username || 'default',
+      password: decodeURIComponent(url.password),
+      tls: isTLS ? { rejectUnauthorized: false } : undefined,
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
-      tls: config.redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
     })
   }
   return _connection as unknown as ConnectionOptions
