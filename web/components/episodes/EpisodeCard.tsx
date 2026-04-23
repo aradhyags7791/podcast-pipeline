@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Download, ExternalLink, Loader2 } from 'lucide-react'
+import { Download, ExternalLink, Loader2, Trash2 } from 'lucide-react'
 import { EpisodeStatusBadge } from './EpisodeStatusBadge'
 import { formatDistanceToNow } from '@/lib/utils'
 
@@ -16,8 +16,10 @@ interface Episode {
   createdAt: string
 }
 
-export function EpisodeCard({ episode }: { episode: Episode }) {
+export function EpisodeCard({ episode, onDelete }: { episode: Episode; onDelete?: (id: string) => void }) {
   const [downloading, setDownloading] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   async function handleDownload() {
     setDownloading(true)
@@ -27,6 +29,18 @@ export function EpisodeCard({ episode }: { episode: Episode }) {
       if (data.downloadUrl) window.open(data.downloadUrl, '_blank')
     } finally {
       setDownloading(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirmDelete) { setConfirmDelete(true); return }
+    setDeleting(true)
+    try {
+      await fetch(`/api/episodes/${episode.id}`, { method: 'DELETE' })
+      onDelete?.(episode.id)
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
     }
   }
 
@@ -90,6 +104,19 @@ export function EpisodeCard({ episode }: { episode: Episode }) {
               Download
             </button>
           )}
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            onBlur={() => setConfirmDelete(false)}
+            className={`inline-flex items-center gap-1.5 text-xs transition-colors duration-200 cursor-pointer disabled:opacity-50 ${
+              confirmDelete
+                ? 'text-red-400 hover:text-red-300'
+                : 'text-muted-foreground/50 hover:text-red-400'
+            }`}
+          >
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            {confirmDelete ? 'Confirm?' : 'Delete'}
+          </button>
         </div>
       </td>
     </tr>

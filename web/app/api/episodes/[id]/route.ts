@@ -60,3 +60,18 @@ export async function GET(
     downloadUrl,
   })
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const episode = await db.query.episodes.findFirst({ where: eq(episodes.id, params.id) })
+  if (!episode) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  await db.delete(episodes).where(eq(episodes.id, params.id))
+
+  return NextResponse.json({ ok: true })
+}

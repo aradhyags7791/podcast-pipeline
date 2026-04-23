@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, Loader2, AlertCircle, ChevronDown, ChevronRight, Play, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, AlertCircle, ChevronDown, ChevronRight, Play, RefreshCw, Trash2 } from 'lucide-react'
 import { EpisodeStatusBadge } from '@/components/episodes/EpisodeStatusBadge'
 import { StageTracker } from '@/components/episodes/StageTracker'
 import { SegmentGrid } from '@/components/episodes/SegmentGrid'
@@ -30,11 +30,14 @@ interface EpisodeState {
 
 export default function EpisodeDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const [episode, setEpisode] = useState<EpisodeState | null>(null)
   const [vcOpen, setVcOpen] = useState(false)
   const [downloadLoading, setDownloadLoading] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const [retryError, setRetryError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const esRef = useRef<EventSource | null>(null)
 
   // Initial load
@@ -94,6 +97,17 @@ export default function EpisodeDetailPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!confirmDelete) { setConfirmDelete(true); return }
+    setDeleting(true)
+    try {
+      await fetch(`/api/episodes/${id}`, { method: 'DELETE' })
+      router.push('/episodes')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   async function handleDownload() {
     setDownloadLoading(true)
     try {
@@ -131,6 +145,19 @@ export default function EpisodeDetailPage() {
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">Created {formatDistanceToNow(new Date(episode.createdAt))}</p>
         </div>
+        <button
+          onClick={handleDelete}
+          onBlur={() => setConfirmDelete(false)}
+          disabled={deleting}
+          className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-all duration-200 cursor-pointer disabled:opacity-50 ${
+            confirmDelete
+              ? 'border-red-500/40 text-red-400 hover:bg-red-500/10'
+              : 'border-border text-muted-foreground hover:border-red-500/30 hover:text-red-400'
+          }`}
+        >
+          {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          {confirmDelete ? 'Confirm delete?' : 'Delete'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

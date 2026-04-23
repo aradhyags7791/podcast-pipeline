@@ -26,6 +26,10 @@ export default function EpisodesPage() {
     } catch {}
   }, [])
 
+  function handleDelete(id: string) {
+    setEpisodes(prev => prev.filter(e => e.id !== id))
+  }
+
   useEffect(() => {
     fetchEpisodes().finally(() => setLoading(false))
     const interval = setInterval(fetchEpisodes, 10000)
@@ -104,7 +108,7 @@ export default function EpisodesPage() {
                 </tr>
               </thead>
               <tbody>
-                {episodes.map(ep => <EpisodeCard key={ep.id} episode={ep} />)}
+                {episodes.map(ep => <EpisodeCard key={ep.id} episode={ep} onDelete={handleDelete} />)}
               </tbody>
             </table>
           </div>
