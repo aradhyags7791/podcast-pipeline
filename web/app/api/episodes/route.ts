@@ -70,12 +70,15 @@ export async function POST(req: NextRequest) {
     status: 'waiting',
   }).returning()
 
-  const q = getSegmentQueue()
-  const bullJob = await q.add('segment', { episodeId: episode.id })
-
-  await db.update(jobs)
-    .set({ bullJobId: bullJob.id?.toString() })
-    .where(eq(jobs.id, job.id))
+  try {
+    const q = getSegmentQueue()
+    const bullJob = await q.add('segment', { episodeId: episode.id })
+    await db.update(jobs)
+      .set({ bullJobId: bullJob.id?.toString() })
+      .where(eq(jobs.id, job.id))
+  } catch {
+    // Queue unavailable — episode saved, user can retry from episode page
+  }
 
   return NextResponse.json(episode, { status: 201 })
 }
