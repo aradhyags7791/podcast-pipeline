@@ -79,8 +79,10 @@ export default function EpisodeDetailPage() {
     try {
       const res = await fetch(`/api/episodes/${id}/retry`, { method: 'POST' })
       if (!res.ok) {
-        const e = await res.json()
-        throw new Error(e.error || 'Retry failed')
+        const text = await res.text()
+        let msg = 'Retry failed'
+        try { msg = JSON.parse(text).error || msg } catch {}
+        throw new Error(msg)
       }
       // Refresh episode state
       const data = await fetch(`/api/episodes/${id}`).then(r => r.json())
