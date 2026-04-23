@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, Loader2, AlertCircle, ChevronDown, ChevronRight, Play } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, AlertCircle, ChevronDown, ChevronRight, Play, RefreshCw } from 'lucide-react'
 import { EpisodeStatusBadge } from '@/components/episodes/EpisodeStatusBadge'
 import { StageTracker } from '@/components/episodes/StageTracker'
 import { SegmentGrid } from '@/components/episodes/SegmentGrid'
@@ -33,6 +33,8 @@ export default function EpisodeDetailPage() {
   const [episode, setEpisode] = useState<EpisodeState | null>(null)
   const [vcOpen, setVcOpen] = useState(false)
   const [downloadLoading, setDownloadLoading] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState('')
   const esRef = useRef<EventSource | null>(null)
 
   // Initial load
@@ -71,6 +73,25 @@ export default function EpisodeDetailPage() {
     return () => es.close()
   }, [id])
 
+  async function handleRetry() {
+    setRetrying(true)
+    setRetryError('')
+    try {
+      const res = await fetch(`/api/episodes/${id}/retry`, { method: 'POST' })
+      if (!res.ok) {
+        const e = await res.json()
+        throw new Error(e.error || 'Retry failed')
+      }
+      // Refresh episode state
+      const data = await fetch(`/api/episodes/${id}`).then(r => r.json())
+      setEpisode(data)
+    } catch (err: any) {
+      setRetryError(err.message)
+    } finally {
+      setRetrying(false)
+    }
+  }
+
   async function handleDownload() {
     setDownloadLoading(true)
     try {
@@ -91,6 +112,7 @@ export default function EpisodeDetailPage() {
   }
 
   const isTerminal = episode.status === 'done' || episode.status === 'failed'
+  const canRetry = episode.status !== 'done'
   const showSegments = !['pending', 'segmenting'].includes(episode.status) || episode.segments.length > 0
 
   return (
@@ -165,14 +187,43 @@ export default function EpisodeDetailPage() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-red-400 mb-1">Pipeline failed</h3>
                   <p className="text-sm text-muted-foreground font-mono break-all">{episode.errorMessage}</p>
-                  <Link
-                    href={`/episodes/${id}/segments`}
-                    className="inline-flex items-center gap-1 text-sm text-amber-400 hover:text-amber-300 mt-3 transition-colors cursor-pointer"
-                  >
-                    View segment details <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={handleRetry}
+                      disabled={retrying}
+                      className="inline-flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {retrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      Retry from this stage
+                    </button>
+                    <Link
+                      href={`/episodes/${id}/segments`}
+                      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      View segments <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                  {retryError && <p className="text-xs text-red-400 mt-2">{retryError}</p>}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Stuck pending — no active job */}
+          {episode.status === 'pending' && (
+            <div className="glass-card p-5 animate-slide-in">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Episode is queued but not processing.</p>
+                <button
+                  onClick={handleRetry}
+                  disabled={retrying}
+                  className="inline-flex items-center gap-1.5 text-sm bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black font-semibold rounded-lg px-3 py-1.5 transition-all cursor-pointer"
+                >
+                  {retrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  Retry
+                </button>
+              </div>
+              {retryError && <p className="text-xs text-red-400 mt-2">{retryError}</p>}
             </div>
           )}
         </div>
