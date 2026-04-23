@@ -14,13 +14,16 @@ export async function POST(req: NextRequest) {
 
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
 
+  const MAX_SIZE = 50 * 1024 * 1024 // 50 MB
+  if (file.size > MAX_SIZE) return NextResponse.json({ error: 'File too large (max 50 MB)' }, { status: 413 })
+
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
   const key = `${folder}/${randomUUID()}.${ext}`
 
   const buffer = Buffer.from(await file.arrayBuffer())
 
   // Dev bypass — skip R2 when credentials aren't configured
-  if (!process.env.R2_ACCOUNT_ID) {
+  if (!process.env.R2_ACCESS_KEY_ID) {
     return NextResponse.json({ key })
   }
 

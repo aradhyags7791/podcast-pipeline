@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  if (name.length > 200) {
+    return NextResponse.json({ error: 'Name too long (max 200 characters)' }, { status: 400 })
+  }
+
+  if (scriptText.length > 100_000) {
+    return NextResponse.json({ error: 'Script too long (max 100,000 characters)' }, { status: 400 })
+  }
+
   // Dev bypass — return a mock episode when DB isn't configured
   if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost')) {
     const mockEpisode = {

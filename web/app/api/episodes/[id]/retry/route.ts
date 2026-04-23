@@ -18,6 +18,12 @@ export async function POST(
   if (!episode) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (episode.status === 'done') return NextResponse.json({ error: 'Episode already completed' }, { status: 400 })
 
+  // Guard: don't double-queue if already actively processing
+  const activeStatuses = ['segmenting', 'analyzing', 'generating', 'stitching'] as const
+  if ((activeStatuses as readonly string[]).includes(episode.status)) {
+    return NextResponse.json({ error: 'Episode is already processing' }, { status: 409 })
+  }
+
   const lastJob = await db.query.jobs.findFirst({
     where: eq(jobs.episodeId, id),
     orderBy: [desc(jobs.createdAt)],

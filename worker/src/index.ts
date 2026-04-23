@@ -28,6 +28,8 @@ async function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT',  () => shutdown('SIGINT'))
+process.on('unhandledRejection', (reason) => console.error('[worker] unhandledRejection:', reason))
+process.on('uncaughtException',  (err)    => console.error('[worker] uncaughtException:', err))
 
 workers.forEach(w => {
   w.on('error', err => console.error(`[worker:${w.name}] error:`, err))

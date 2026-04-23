@@ -5,7 +5,7 @@
     "web": {
       "builder": "NIXPACKS",
       "buildCommand": "cd web && npm install && npm run build",
-      "startCommand": "cd web && npm start",
+      "startCommand": "cd web && node .next/standalone/server.js",
       "healthcheckPath": "/api/health"
     },
     "worker": {

@@ -51,13 +51,17 @@ export async function GET(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
 
       let timer: ReturnType<typeof setInterval>
+      let errorCount = 0
+      const MAX_ERRORS = 5
 
       const poll = async () => {
         try {
           const episode = await db.query.episodes.findFirst({
             where: eq(episodes.id, params.id),
           })
-          if (!episode) { controller.close(); return }
+          if (!episode) { clearInterval(timer); controller.close(); return }
+
+          errorCount = 0
 
           const segs = await db.select().from(segments)
             .where(eq(segments.episodeId, params.id))
@@ -83,6 +87,12 @@ export async function GET(
           }
         } catch (err) {
           console.error('[SSE] poll error:', err)
+          errorCount++
+          if (errorCount >= MAX_ERRORS) {
+            console.error('[SSE] too many errors — closing stream')
+            clearInterval(timer)
+            controller.close()
+          }
         }
       }
 

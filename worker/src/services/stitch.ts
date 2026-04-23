@@ -1,6 +1,14 @@
-import { spawnSync } from 'child_process'
+import { spawn } from 'child_process'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+
+function ffmpeg(args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('ffmpeg', args, { stdio: 'inherit' })
+    proc.on('close', code => code === 0 ? resolve() : reject(new Error(`ffmpeg exited with code ${code}`)))
+    proc.on('error', reject)
+  })
+}
 
 function formatTime(s: number): string {
   const h = Math.floor(s / 3600)
@@ -46,29 +54,12 @@ export async function stitchEpisode(
   await fs.writeFile(assPath, assLines.join('\n'))
 
   // Step 1: concat
-  const concat = spawnSync('ffmpeg', [
-    '-y', '-f', 'concat', '-safe', '0',
-    '-i', concatPath,
-    '-c', 'copy',
-    rawPath,
-  ], { stdio: 'inherit' })
-
-  if (concat.status !== 0) {
-    throw new Error(`ffmpeg concat failed with exit code ${concat.status}`)
-  }
+  await ffmpeg(['-y', '-f', 'concat', '-safe', '0', '-i', concatPath, '-c', 'copy', rawPath])
 
   // Step 2: subtitle burn
-  const sub = spawnSync('ffmpeg', [
-    '-y', '-i', rawPath,
-    '-vf', `ass=${assPath}`,
-    '-c:v', 'libx264',
-    '-crf', '23',
-    '-preset', 'fast',
-    '-c:a', 'copy',
-    outputPath,
-  ], { stdio: 'inherit' })
-
-  if (sub.status !== 0) {
+  try {
+    await ffmpeg(['-y', '-i', rawPath, '-vf', `ass=${assPath}`, '-c:v', 'libx264', '-crf', '23', '-preset', 'fast', '-c:a', 'copy', outputPath])
+  } catch {
     console.warn('[stitch] Subtitle burn failed — falling back to no subtitles')
     await fs.copyFile(rawPath, outputPath)
   }

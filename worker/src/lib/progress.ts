@@ -1,6 +1,6 @@
 import { db } from '../db'
 import { episodes, jobs } from '../db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 
 type EpisodeStatus = 'pending' | 'segmenting' | 'analyzing' | 'generating' | 'stitching' | 'done' | 'failed'
 type JobStatus = 'waiting' | 'active' | 'completed' | 'failed'
@@ -33,11 +33,8 @@ export async function insertJobRecord(episodeId: string, stage: string, bullJobI
 }
 
 export async function incrementCompletedSegments(episodeId: string) {
-  const [ep] = await db.select({ completed: episodes.completedSegments })
-    .from(episodes).where(eq(episodes.id, episodeId))
-  if (!ep) return
   await db.update(episodes).set({
-    completedSegments: ep.completed + 1,
+    completedSegments: sql`${episodes.completedSegments} + 1`,
     updatedAt: new Date(),
   }).where(eq(episodes.id, episodeId))
 }
